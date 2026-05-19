@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Gauge, Loader2 } from 'lucide-react';
+import { Gauge, Loader2, Plus } from 'lucide-react';
 import { runSpeedTest } from '../lib/speedTest';
 import type { RoomSelection, SpeedTestResult } from '../types';
+
+const testDurationMinutes = 1;
 
 interface RoomSelectorProps {
   selection: RoomSelection;
@@ -10,9 +12,9 @@ interface RoomSelectorProps {
 }
 
 export function RoomSelector({ selection, onSelectionChange, onSaved }: RoomSelectorProps) {
-  const [durationMinutes, setDurationMinutes] = useState(1);
   const [state, setState] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState<string | null>(null);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
 
   async function handleRunTest() {
     if (!selection.room.trim() || !selection.location.trim()) {
@@ -22,10 +24,16 @@ export function RoomSelector({ selection, onSelectionChange, onSaved }: RoomSele
     }
 
     setState('testing');
-    setMessage(`Testing connection for ${durationMinutes} minute${durationMinutes > 1 ? 's' : ''}...`);
+    setMessage('Testing connection for 1 minute...');
+    const controller = new AbortController();
+    setAbortController(controller);
 
     try {
-      const result = await runSpeedTest(durationMinutes);
+      const result = await runSpeedTest(testDurationMinutes, controller.signal);
+      if (result.speedMbps <= 0 || result.speedMbps > 2000) {
+        throw new Error('Speed result outside valid range. No log saved.');
+      }
+
       await onSaved(
         {
           room: selection.room.trim(),
@@ -36,9 +44,23 @@ export function RoomSelector({ selection, onSelectionChange, onSaved }: RoomSele
       setState('success');
       setMessage(`${selection.room} updated with ${result.speedMbps} Mbps log`);
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        setState('idle');
+        setMessage('Test canceled. No log saved.');
+        return;
+      }
+
       setState('error');
       setMessage(error instanceof Error ? error.message : 'Speed test failed');
+    } finally {
+      setAbortController(null);
     }
+  }
+
+  function handleNewRoom() {
+    onSelectionChange({ room: '', location: '' });
+    setState('idle');
+    setMessage(null);
   }
 
   return (
@@ -69,34 +91,44 @@ export function RoomSelector({ selection, onSelectionChange, onSaved }: RoomSele
           />
         </label>
 
-        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-          Test length
-          <input
-            type="number"
-            min={1}
-            max={5}
-            className="h-11 rounded-md border border-slate-300 bg-white px-3 text-slate-950"
-            value={durationMinutes}
-            onChange={(event) =>
-              setDurationMinutes(Math.min(5, Math.max(1, Number(event.target.value) || 1)))
-            }
-          />
-          <span className="text-xs text-slate-500">1 to 5 minutes</span>
-        </label>
+        <div className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
+          Test length: 1 minute
+        </div>
 
-        <button
-          className="mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-signal-700 px-4 font-semibold text-white transition hover:bg-signal-900 disabled:cursor-not-allowed disabled:bg-slate-400"
-          type="button"
-          disabled={state === 'testing'}
-          onClick={handleRunTest}
-        >
-          {state === 'testing' ? (
-            <Loader2 className="animate-spin" size={20} aria-hidden="true" />
-          ) : (
-            <Gauge size={20} aria-hidden="true" />
-          )}
-          Test WiFi
-        </button>
+        <div className="mt-2 grid gap-2 sm:grid-cols-3">
+          <button
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-signal-700 px-4 font-semibold text-white transition hover:bg-signal-900 disabled:cursor-not-allowed disabled:bg-slate-400"
+            type="button"
+            disabled={state === 'testing'}
+            onClick={handleRunTest}
+          >
+            {state === 'testing' ? (
+              <Loader2 className="animate-spin" size={20} aria-hidden="true" />
+            ) : (
+              <Gauge size={20} aria-hidden="true" />
+            )}
+            Test WiFi
+          </button>
+
+          <button
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            type="button"
+            disabled={state === 'testing'}
+            onClick={handleNewRoom}
+          >
+            <Plus size={18} aria-hidden="true" />
+            New room
+          </button>
+
+          <button
+            className="inline-flex h-12 items-center justify-center rounded-md border border-slate-300 bg-white px-4 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            type="button"
+            disabled={state !== 'testing'}
+            onClick={() => abortController?.abort()}
+          >
+            Cancel
+          </button>
+        </div>
 
         {message ? (
           <p
