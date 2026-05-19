@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Gauge, Loader2, Plus } from 'lucide-react';
+import { Clock, DoorOpen, Gauge, Loader2, MapPin, Plus, Radio } from 'lucide-react';
 import { runSpeedTest } from '../lib/speedTest';
 import type { RoomSelection, SpeedTestResult } from '../types';
 
@@ -64,40 +64,65 @@ export function RoomSelector({ selection, onSelectionChange, onSaved }: RoomSele
   }
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-5">
-        <h2 className="text-lg font-semibold text-slate-950">Run test</h2>
-        <p className="mt-1 text-sm text-slate-600">Create room entry, log location, then test.</p>
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-5 flex items-center gap-3">
+        <Radio className="text-blue-600" size={24} />
+        <div>
+          <h2 className="text-lg font-bold text-slate-950">Run test</h2>
+          <p className="text-sm text-slate-500">Create room entry, log location, then test.</p>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4">
-        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-          Room
-          <input
-            className="h-11 rounded-md border border-slate-300 bg-white px-3 text-slate-950"
-            value={selection.room}
-            onChange={(event) => onSelectionChange({ ...selection, room: event.target.value })}
-            placeholder="Room 612"
-          />
-        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-800">
+            Room
+            <div className="relative">
+              <DoorOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-slate-950 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                value={selection.room}
+                onChange={(event) => onSelectionChange({ ...selection, room: event.target.value })}
+                placeholder="Room 612"
+              />
+            </div>
+          </label>
 
-        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
-          Location
-          <input
-            className="h-11 rounded-md border border-slate-300 bg-white px-3 text-slate-950"
-            value={selection.location}
-            onChange={(event) => onSelectionChange({ ...selection, location: event.target.value })}
-            placeholder="6th floor, east hallway"
-          />
-        </label>
-
-        <div className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
-          Test length: 1 minute
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-800">
+            Location
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-slate-950 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                value={selection.location}
+                onChange={(event) => onSelectionChange({ ...selection, location: event.target.value })}
+                placeholder="6th floor, east hallway"
+              />
+            </div>
+          </label>
         </div>
 
-        <div className="mt-2 grid gap-2 sm:grid-cols-3">
+        <label className="flex flex-col gap-2 text-sm font-medium text-slate-800">
+          Test length
+          <div className="relative max-w-[200px]">
+            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <select
+              className="h-11 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-10 pr-8 text-slate-950 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              defaultValue="1"
+            >
+              <option value="1">1 minute</option>
+            </select>
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 4.5L6 8L9.5 4.5" stroke="#64748B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </label>
+
+        <div className="mt-4 flex flex-col gap-3">
           <button
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-signal-700 px-4 font-semibold text-white transition hover:bg-signal-900 disabled:cursor-not-allowed disabled:bg-slate-400"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
             type="button"
             disabled={state === 'testing'}
             onClick={handleRunTest}
@@ -111,23 +136,29 @@ export function RoomSelector({ selection, onSelectionChange, onSaved }: RoomSele
           </button>
 
           <button
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white px-4 font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
             disabled={state === 'testing'}
             onClick={handleNewRoom}
           >
-            <Plus size={18} aria-hidden="true" />
+            <Plus size={20} aria-hidden="true" />
             New room
           </button>
 
-          <button
-            className="inline-flex h-12 items-center justify-center rounded-md border border-slate-300 bg-white px-4 font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-            type="button"
-            disabled={state !== 'testing'}
-            onClick={() => abortController?.abort()}
-          >
-            Cancel
-          </button>
+          {state === 'testing' && (
+            <button
+              className="inline-flex h-10 w-full items-center justify-center font-semibold text-slate-500 transition hover:text-slate-700"
+              type="button"
+              onClick={() => abortController?.abort()}
+            >
+              Cancel
+            </button>
+          )}
+          {state !== 'testing' && (
+            <div className="h-10 flex items-center justify-center">
+              <span className="font-semibold text-slate-400 cursor-not-allowed">Cancel</span>
+            </div>
+          )}
         </div>
 
         {message ? (
@@ -143,3 +174,4 @@ export function RoomSelector({ selection, onSelectionChange, onSaved }: RoomSele
     </section>
   );
 }
+

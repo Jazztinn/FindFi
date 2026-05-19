@@ -23,7 +23,7 @@ export function PWAInstallPrompt() {
 
   return (
     <button
-      className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+      className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-600 transition hover:bg-blue-50"
       type="button"
       onClick={async () => {
         await installEvent.prompt();
@@ -31,7 +31,7 @@ export function PWAInstallPrompt() {
         setInstallEvent(null);
       }}
     >
-      <Download size={18} aria-hidden="true" />
+      <Download size={16} aria-hidden="true" />
       Install
     </button>
   );
