@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="WiFi Tester">
+  <rect width="128" height="128" rx="24" fill="#0f766e"/>
+  <path d="M24 50c22-20 58-20 80 0" fill="none" stroke="#f8fafc" stroke-width="10" stroke-linecap="round"/>
+  <path d="M42 68c12-10 32-10 44 0" fill="none" stroke="#f8fafc" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="64" cy="86" r="8" fill="#f8fafc"/>
+</svg>
