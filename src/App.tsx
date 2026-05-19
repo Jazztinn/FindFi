@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Wifi } from 'lucide-react';
 import { FilterBar } from './components/FilterBar';
 import { Leaderboard } from './components/Leaderboard';
+import { LocalDemoControls } from './components/LocalDemoControls';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { RoomMap } from './components/RoomMap';
 import { RoomHistory } from './components/RoomHistory';
@@ -21,7 +22,7 @@ export default function App() {
   });
   const [filters, setFilters] = useState<Filters>(initialFilters);
   const [historyRoom, setHistoryRoom] = useState<string | null>(null);
-  const { rooms, tests, status, saveRoomTest } = useSpeedTests();
+  const { rooms, tests, status, saveRoomTest, clearLocalDemoData } = useSpeedTests();
 
   const historyTests = useMemo(
     () => tests.filter((test) => test.roomId === historyRoom),
@@ -63,6 +64,7 @@ export default function App() {
           />
 
           <div className="flex flex-col gap-4">
+            <LocalDemoControls status={status} onClear={clearLocalDemoData} />
             <FilterBar filters={filters} onFiltersChange={setFilters} />
             <RoomMap rooms={rooms} onSelectRoom={setHistoryRoom} />
             <Leaderboard

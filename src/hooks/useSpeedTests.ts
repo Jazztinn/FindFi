@@ -11,6 +11,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { firestoreCollections, firestoreFields } from '../data/firestoreContract';
+import { getClientMetadata } from '../lib/clientMetadata';
 import { getFirebaseDb } from '../lib/firebase';
 import type { DataStatus, RoomRecord, RoomSelection, SpeedTestRecord, SpeedTestResult } from '../types';
 
@@ -33,6 +34,10 @@ interface FirestoreSpeedTest {
   test_duration_seconds: number;
   timestamp?: Timestamp;
   user_id: 'anonymous';
+  user_agent?: string;
+  connection_effective_type?: string | null;
+  connection_downlink_mbps?: number | null;
+  connection_rtt_ms?: number | null;
 }
 
 const now = Date.now();
@@ -81,6 +86,7 @@ const demoTests: SpeedTestRecord[] = [
     durationSeconds: 2.2,
     timestamp: new Date(Date.now() - 12 * 60 * 1000),
     userId: 'anonymous',
+    metadata: demoMetadata(),
   },
   {
     id: 'demo-704',
@@ -92,6 +98,7 @@ const demoTests: SpeedTestRecord[] = [
     durationSeconds: 3.1,
     timestamp: new Date(Date.now() - 45 * 60 * 1000),
     userId: 'anonymous',
+    metadata: demoMetadata(),
   },
   {
     id: 'demo-hall',
@@ -103,14 +110,28 @@ const demoTests: SpeedTestRecord[] = [
     durationSeconds: 4.1,
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
     userId: 'anonymous',
+    metadata: demoMetadata(),
   },
 ];
 
+const localRoomsKey = 'wifiTester.demo.rooms';
+const localTestsKey = 'wifiTester.demo.tests';
+
 export function useSpeedTests() {
   const db = useMemo(() => getFirebaseDb(), []);
-  const [rooms, setRooms] = useState<RoomRecord[]>(db ? [] : demoRooms);
-  const [tests, setTests] = useState<SpeedTestRecord[]>(db ? [] : demoTests);
+  const [rooms, setRooms] = useState<RoomRecord[]>(() => (db ? [] : loadLocalRooms()));
+  const [tests, setTests] = useState<SpeedTestRecord[]>(() => (db ? [] : loadLocalTests()));
   const [status, setStatus] = useState<DataStatus>(db ? 'loading' : 'env-missing');
+
+  useEffect(() => {
+    if (db) return;
+    localStorage.setItem(localRoomsKey, JSON.stringify(rooms));
+  }, [db, rooms]);
+
+  useEffect(() => {
+    if (db) return;
+    localStorage.setItem(localTestsKey, JSON.stringify(tests));
+  }, [db, tests]);
 
   useEffect(() => {
     if (!db) return;
@@ -162,6 +183,12 @@ export function useSpeedTests() {
               durationSeconds: data.test_duration_seconds,
               timestamp: data.timestamp?.toDate() ?? new Date(),
               userId: data.user_id,
+              metadata: {
+                userAgent: data.user_agent ?? '',
+                connectionEffectiveType: data.connection_effective_type ?? null,
+                connectionDownlinkMbps: data.connection_downlink_mbps ?? null,
+                connectionRttMs: data.connection_rtt_ms ?? null,
+              },
             };
           }),
         );
@@ -205,6 +232,7 @@ export function useSpeedTests() {
       durationSeconds: result.durationSeconds,
       timestamp,
       userId: 'anonymous',
+      metadata: getClientMetadata(),
     };
 
     if (!db) {
@@ -220,6 +248,7 @@ export function useSpeedTests() {
       doc(db, firestoreCollections.rooms, roomId),
       {
         [firestoreFields.room.name]: roomRecord.name,
+        // Latest user entry wins so map/source text can be corrected in-place.
         [firestoreFields.room.location]: roomRecord.location,
         [firestoreFields.room.createdAt]: existingRoom ? existingRoom.createdAt : serverTimestamp(),
         [firestoreFields.room.updatedAt]: serverTimestamp(),
@@ -239,16 +268,75 @@ export function useSpeedTests() {
       [firestoreFields.speedTest.timestamp]: serverTimestamp(),
       [firestoreFields.speedTest.userId]: testRecord.userId,
       [firestoreFields.speedTest.durationSeconds]: testRecord.durationSeconds,
+      [firestoreFields.speedTest.userAgent]: testRecord.metadata.userAgent,
+      [firestoreFields.speedTest.connectionEffectiveType]:
+        testRecord.metadata.connectionEffectiveType,
+      [firestoreFields.speedTest.connectionDownlinkMbps]:
+        testRecord.metadata.connectionDownlinkMbps,
+      [firestoreFields.speedTest.connectionRttMs]: testRecord.metadata.connectionRttMs,
     });
   }
 
-  return { rooms, tests, status, saveRoomTest };
+  function clearLocalDemoData() {
+    if (db) return;
+    setRooms([]);
+    setTests([]);
+  }
+
+  return { rooms, tests, status, saveRoomTest, clearLocalDemoData };
+}
+
+function demoMetadata() {
+  return {
+    userAgent: 'Demo browser',
+    connectionEffectiveType: null,
+    connectionDownlinkMbps: null,
+    connectionRttMs: null,
+  };
 }
 
 function roomKey(roomName: string) {
-  return roomName
+  const key = roomName
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
+
+  return key || crypto.randomUUID();
+}
+
+function loadLocalRooms() {
+  const stored = localStorage.getItem(localRoomsKey);
+  if (!stored) return demoRooms;
+
+  try {
+    return (JSON.parse(stored) as Array<Omit<RoomRecord, 'createdAt' | 'updatedAt'> & {
+      createdAt: string;
+      updatedAt: string;
+    }>).map((room) => ({
+      ...room,
+      createdAt: new Date(room.createdAt),
+      updatedAt: new Date(room.updatedAt),
+    }));
+  } catch {
+    return demoRooms;
+  }
+}
+
+function loadLocalTests() {
+  const stored = localStorage.getItem(localTestsKey);
+  if (!stored) return demoTests;
+
+  try {
+    return (JSON.parse(stored) as Array<Omit<SpeedTestRecord, 'timestamp' | 'metadata'> & {
+      timestamp: string;
+      metadata?: SpeedTestRecord['metadata'];
+    }>).map((test) => ({
+      ...test,
+      timestamp: new Date(test.timestamp),
+      metadata: test.metadata ?? demoMetadata(),
+    }));
+  } catch {
+    return demoTests;
+  }
 }

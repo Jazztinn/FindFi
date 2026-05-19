@@ -38,6 +38,14 @@ export interface SpeedTestRecord {
   durationSeconds: number;
   timestamp: Date;
   userId: 'anonymous';
+  metadata: ClientMetadata;
+}
+
+export interface ClientMetadata {
+  userAgent: string;
+  connectionEffectiveType: string | null;
+  connectionDownlinkMbps: number | null;
+  connectionRttMs: number | null;
 }
 
 export type DataStatus = 'env-missing' | 'loading' | 'ready' | 'error';

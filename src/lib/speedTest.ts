@@ -3,9 +3,14 @@ import type { SpeedTestResult } from '../types';
 
 const requestTimeoutMs = 20_000;
 
-export async function runSpeedTest(durationMinutes: number): Promise<SpeedTestResult> {
-  const targetMs = clamp(durationMinutes, 1, 5) * 60_000;
+export async function runSpeedTest(
+  durationMinutes = 1,
+  signal?: AbortSignal,
+): Promise<SpeedTestResult> {
+  const targetMs = durationMinutes * 60_000;
   const controller = new AbortController();
+  const abortFromCaller = () => controller.abort(signal?.reason);
+  signal?.addEventListener('abort', abortFromCaller, { once: true });
   const timeout = window.setTimeout(() => controller.abort(), targetMs + requestTimeoutMs);
   const start = performance.now();
   let measuredBytes = 0;
@@ -39,10 +44,7 @@ export async function runSpeedTest(durationMinutes: number): Promise<SpeedTestRe
       measuredBytes,
     };
   } finally {
+    signal?.removeEventListener('abort', abortFromCaller);
     window.clearTimeout(timeout);
   }
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
 }

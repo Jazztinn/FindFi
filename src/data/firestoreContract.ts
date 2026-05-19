@@ -22,5 +22,9 @@ export const firestoreFields = {
     timestamp: 'timestamp',
     userId: 'user_id',
     durationSeconds: 'test_duration_seconds',
+    userAgent: 'user_agent',
+    connectionEffectiveType: 'connection_effective_type',
+    connectionDownlinkMbps: 'connection_downlink_mbps',
+    connectionRttMs: 'connection_rtt_ms',
   },
 } as const;
