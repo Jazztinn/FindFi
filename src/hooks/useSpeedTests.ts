@@ -10,6 +10,7 @@ import {
   setDoc,
   Timestamp,
 } from 'firebase/firestore';
+import { firestoreCollections, firestoreFields } from '../data/firestoreContract';
 import { getFirebaseDb } from '../lib/firebase';
 import type { DataStatus, RoomRecord, RoomSelection, SpeedTestRecord, SpeedTestResult } from '../types';
 
@@ -114,7 +115,10 @@ export function useSpeedTests() {
   useEffect(() => {
     if (!db) return;
 
-    const roomsQuery = query(collection(db, 'rooms'), orderBy('updated_at', 'desc'));
+    const roomsQuery = query(
+      collection(db, firestoreCollections.rooms),
+      orderBy(firestoreFields.room.updatedAt, 'desc'),
+    );
     const unsubscribeRooms = onSnapshot(
       roomsQuery,
       (snapshot) => {
@@ -138,7 +142,10 @@ export function useSpeedTests() {
       () => setStatus('error'),
     );
 
-    const testsQuery = query(collection(db, 'speed_tests'), orderBy('timestamp', 'desc'));
+    const testsQuery = query(
+      collection(db, firestoreCollections.speedTests),
+      orderBy(firestoreFields.speedTest.timestamp, 'desc'),
+    );
     const unsubscribeTests = onSnapshot(
       testsQuery,
       (snapshot) => {
@@ -210,28 +217,28 @@ export function useSpeedTests() {
     }
 
     await setDoc(
-      doc(db, 'rooms', roomId),
+      doc(db, firestoreCollections.rooms, roomId),
       {
-        name: roomRecord.name,
-        location: roomRecord.location,
-        created_at: existingRoom ? existingRoom.createdAt : serverTimestamp(),
-        updated_at: serverTimestamp(),
-        last_speed_mbps: roomRecord.lastSpeedMbps,
-        average_speed_mbps: roomRecord.averageSpeedMbps,
-        test_count: roomRecord.testCount,
+        [firestoreFields.room.name]: roomRecord.name,
+        [firestoreFields.room.location]: roomRecord.location,
+        [firestoreFields.room.createdAt]: existingRoom ? existingRoom.createdAt : serverTimestamp(),
+        [firestoreFields.room.updatedAt]: serverTimestamp(),
+        [firestoreFields.room.lastSpeedMbps]: roomRecord.lastSpeedMbps,
+        [firestoreFields.room.averageSpeedMbps]: roomRecord.averageSpeedMbps,
+        [firestoreFields.room.testCount]: roomRecord.testCount,
       },
       { merge: true },
     );
 
-    await addDoc(collection(db, 'speed_tests'), {
-      room_id: testRecord.roomId,
-      room_name: testRecord.roomName,
-      location: testRecord.location,
-      speed_mbps: testRecord.speedMbps,
-      latency_ms: testRecord.latencyMs,
-      timestamp: serverTimestamp(),
-      user_id: testRecord.userId,
-      test_duration_seconds: testRecord.durationSeconds,
+    await addDoc(collection(db, firestoreCollections.speedTests), {
+      [firestoreFields.speedTest.roomId]: testRecord.roomId,
+      [firestoreFields.speedTest.roomName]: testRecord.roomName,
+      [firestoreFields.speedTest.location]: testRecord.location,
+      [firestoreFields.speedTest.speedMbps]: testRecord.speedMbps,
+      [firestoreFields.speedTest.latencyMs]: testRecord.latencyMs,
+      [firestoreFields.speedTest.timestamp]: serverTimestamp(),
+      [firestoreFields.speedTest.userId]: testRecord.userId,
+      [firestoreFields.speedTest.durationSeconds]: testRecord.durationSeconds,
     });
   }
 
